@@ -27,38 +27,44 @@ path = pwd()
 
 function read_data(typeData, labelsInfo, imageSize, path)
   # initilize x matrix
-  x = zeros(size(labelsInfoTrain, 1), imageSize)
+  x = zeros(size(labelsInfo, 1), imageSize)
 
   #@printf("This is labelsInfoTrain: %s", labelsInfoTrain)
   #@printf("This is labelsInfoTrain[ID]: %s", labelsInfoTrain[:ID])
 
-  for (index, idImage) in enumerate(labelsInfoTrain[:ID])
-      #read image file
-      nameFile = "$(path)/data/trainResized/$(idImage).Bmp"
-      img = imread(nameFile)
+  for (index, idImage) in enumerate(labelsInfo[:ID])
 
-      # check if correct size
-      assert(size(img) == (20,20))
+    nameFile = "$(path)/data/$(typeData)Resized/$(idImage).Bmp"
+    #read image file
+    #if typeData == "test"
+    #  @printf("typeData: %s", typeData)
+    #  nameFile = "$(path)/data/testResized/$(idImage).Bmp"
+    #end
 
-      # convert img to float values
-      temp = float32(img)
+    img = imread(nameFile)
 
-      # convert color images to gray images
-      # by taking average of the color scales
-      #if ndims(temp) == 3
-      #  temp = mean(temp.data, 1)
-      #end
-      # or simply convert all to grayscale
-      temp = convert(Image{Gray}, temp)
-      #@printf("This is temp-gray: %s", temp)
+    # check if correct size
+    assert(size(img) == (20,20))
 
-      temp_img = reinterpret(Float32, float32(temp))
+    # convert img to float values
+    temp = float32(img)
 
-      img_vector = reshape(temp_img, 1, imageSize)
+    # convert color images to gray images
+    # by taking average of the color scales
+    #if ndims(temp) == 3
+    #  temp = mean(temp.data, 1)
+    #end
+    # or simply convert all to grayscale
+    temp = convert(Image{Gray}, temp)
+    #@printf("This is temp-gray: %s", temp)
 
-      # transform image matrix to vector and store in data matrix
-      #@printf("x: %s %s\n", index, idImage)            # print out status
-      x[index, :] = img_vector
+    temp_img = reinterpret(Float32, float32(temp))
+
+    img_vector = reshape(temp_img, 1, imageSize)
+
+    # transform image matrix to vector and store in data matrix
+    #@printf("x: %s %s\n", index, idImage)            # print out status
+    x[index, :] = img_vector
   end
 
   return x
@@ -116,4 +122,32 @@ ratio_sub = 1.0       # ratio of subsampling
 
 # trained model
 model = build_forest(yTrain, xTrain, split_features, num_trees, ratio_sub)
+@printf("The trained model: %s", model)
+
+## Trees: 50
+## Avg Leaves: 2188.0
+## Avg Depth: 19.28
+
+# apply trained model to test data
+predict_test = apply_forest(model, xTest)
+
+# check if wrong
+wrong = find(predict_test.!=yTrain)
+@printf("Wrong: %s", wrong)          # wrong = 3055
+char(predict_test[3055])
+char(yTrain[3055])
+
+# so, our random forest thought that the '1' at 3055
+# looked more like an 'E' (it predicted it as an E)
+
+# Convert integer predictions to character
+labelsInfoTest[:Class] = char(predict_test)
+
+# save predictions
+writetable("$(path)/juliaSubmission.csv", labelsInfoTest, separator=',',header=true)
+
+# check accuracy: n-fold cross validation - used to test performance of model
+folds = 4
+accuracy = nfoldCV_forest(yTrain, xTrain, split_features, num_trees, folds, ratio_sub)
+@printf("4 fold accuracy: $(mean(accuracy))")
 
