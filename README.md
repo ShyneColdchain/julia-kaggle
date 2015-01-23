@@ -8,4 +8,6 @@ First attempt at learning Julia through the Kaggle tutorial - image processing.
 
 [Shoutout to this blog ^__^](http://learningjulialang.blogspot.co.uk/)
 
+[And this blog.](http://bensadeghi.com/decision-trees-julia/)
+
 

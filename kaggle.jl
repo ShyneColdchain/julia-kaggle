@@ -14,6 +14,11 @@ path = pwd()
 # Kaggle Julia tutorial: identifying characters from Google Street View images
 # showcasing Julia: intuitive syntax and design
 
+###################################################
+############ Preprocessing Data ###################
+###################################################
+
+
 # typeData = train or test
 # labelsInfo = IDs of each image to be read
 # image = trainResized or testResized = 20x20
@@ -83,3 +88,32 @@ labelsInfoTest = readtable("$(path)/data/sampleSubmission.csv")
 xTest = read_data("test", labelsInfoTest, imageSize, path)
 
 # now xTrain and xTest are training and testing matrices, respectively
+
+# get only first character of string - convert from string to character
+yTrain = map(x -> x[1], labelsInfoTrain[:Class])
+yTrain = int(yTrain)         # convert from character to integer
+
+###################################################
+############### Training Data #####################
+###################################################
+
+# need ml algorithm that learns patterns in images
+# that identify the character in the label
+# thus = random forest
+
+Pkg.add("DecisionTree")
+using DecisionTree
+
+# 1. number of features to choose at each split - sq-root(number of features)
+# 2. number of trees                            - bigger = better
+# 3. ratio of subsampling
+
+# number of features to tree at each split = split_features
+# split_features = sq-root(number of features) = sq-root(400) = 20
+split_features = 20
+num_trees = 50
+ratio_sub = 1.0       # ratio of subsampling
+
+# trained model
+model = build_forest(yTrain, xTrain, split_features, num_trees, ratio_sub)
+
