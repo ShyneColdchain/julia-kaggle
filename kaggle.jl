@@ -20,51 +20,48 @@ path = pwd()
 # so, imageSize = 400
 # path = location of data files
 
-# kaggle function: errors on DataFrame?
 function read_data(typeData, labelsInfo, imageSize, path)
   # initilize x matrix
-  x = zeros(size(labelsInfo, 1), imageSize)
+  x = zeros(size(labelsInfoTrain, 1), imageSize)
 
-  for (index, idImage) in enumerate(labelsInfo["ID"])
-    #read image file
-    nameFile = "$(path)/data/$(typeData)Resized/$(idImage).Bmp"
-    img = imread(nameFile)
+  #@printf("This is labelsInfoTrain: %s", labelsInfoTrain)
+  #@printf("This is labelsInfoTrain[ID]: %s", labelsInfoTrain[:ID])
 
-    # convert img to float values
-    temp = float32(img)
+  for (index, idImage) in enumerate(labelsInfoTrain[:ID])
+      #read image file
+      nameFile = "$(path)/data/trainResized/$(idImage).Bmp"
+      img = imread(nameFile)
 
-    # convert color images to gray images
-    # by taking average of the color scales
-    if ndims(temp) == 3
-      temp = mean(temp.data, 1)
-    end
+      # check if correct size
+      assert(size(img) == (20,20))
 
-    # transform image matrix to vector and store in data matrix
-    x[index, :] = reshape(temp, 1, imageSize)
+      # convert img to float values
+      temp = float32(img)
 
+      # convert color images to gray images
+      # by taking average of the color scales
+      #if ndims(temp) == 3
+      #  temp = mean(temp.data, 1)
+      #end
+      # or simply convert all to grayscale
+      temp = convert(Image{Gray}, temp)
+      #@printf("This is temp-gray: %s", temp)
+
+      temp_img = reinterpret(Float32, float32(temp))
+
+      img_vector = reshape(temp_img, 1, imageSize)
+
+      # transform image matrix to vector and store in data matrix
+      #@printf("x: %s %s\n", index, idImage)            # print out status
+      x[index, :] = img_vector
   end
 
   return x
 
 end
 
-typeData = "train"
 imageSize = 400            # 20 x 20 pixel
 path = pwd()
-labelsInfoTrain = readtable("$(path)/data/trainLabels.csv")
-labelsInfo = labelsInfoTrain
-
-# read training matrix
-xTrain = read_data(typeData, labelsInfo, imageSize, path)
-
-# read information about test data (IDs)
-labelsInfoTest = readtable("$(path)/data/sampleSubmission.csv")
-
-# read test matrix
-xTest = read_data("test", labelsInfoTest, imageSize, path)
-
-##############################################################
-
 @printf("The path: %s", path)
 @printf("Image size: %s", imageSize)
 
@@ -76,32 +73,13 @@ labelsInfoTest = readtable("$(path)/data/sampleSubmission.csv")
 num_images_train = size(labelsInfoTrain)[1]
 num_images_test = size(labelsInfoTest)[1]
 
-# train it
-x = zeros(size(labelsInfoTrain, 1), imageSize)
+# read training matrix
+xTrain = read_data("train", labelsInfoTrain, imageSize, path)
 
-@printf("This is labelsInfoTrain: %s", labelsInfoTrain)
-@printf("This is labelsInfoTrain[ID]: %s", labelsInfoTrain[:ID])
+# read information about test data (IDs)
+labelsInfoTest = readtable("$(path)/data/sampleSubmission.csv")
 
-for (index, idImage) in enumerate(labelsInfoTrain[:ID])
-    #read image file
-    nameFile = "$(path)/data/trainResized/$(idImage).Bmp"
-    img = imread(nameFile)
+# read test matrix
+xTest = read_data("test", labelsInfoTest, imageSize, path)
 
-    # check if correct size
-    assert(size(img) == (20,20))
-
-    # convert img to float values
-    temp = float32(img)
-
-    # convert color images to gray images
-    # by taking average of the color scales
-    #if ndims(temp) == 3
-    #  temp = mean(temp.data, 1)
-    #end
-    # or simply convert all to grayscale
-    temp = convert(Image{Gray}, temp)
-    #@printf("This is temp-gray: %s", temp)
-
-    # transform image matrix to vector and store in data matrix
-    x[index, :] = reshape(temp, 1, imageSize)
-end
+# now xTrain and xTest are training and testing matrices, respectively
