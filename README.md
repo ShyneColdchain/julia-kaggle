@@ -1,10 +1,11 @@
-Julia:  
+**Julia:**  
 
--first attempt at learning Julia through Machine Learning
+(learning ML in Julia)
 
 ====================================
 
 FIRST STEPS WITH JULIA (Kaggle):
+
 [First steps with Julia (Kaggle)](https://www.kaggle.com/c/street-view-getting-started-with-julia/details/julia-tutorial)
 
 [Shoutout to this blog ^__^](http://learningjulialang.blogspot.co.uk/)
@@ -15,6 +16,6 @@ FIRST STEPS WITH JULIA (Kaggle):
 
 NEURAL NETWORKS: 
 
-[Follow through of this blog]](http://blog.yhathq.com/posts/julia-neural-networks.html)
+[Follow through of this blog](http://blog.yhathq.com/posts/julia-neural-networks.html)
 
 
