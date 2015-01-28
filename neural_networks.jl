@@ -13,10 +13,16 @@ versioninfo()
 
 # read in df to train
 train_df = readtable("data/winequality-red.csv", separator=';')
+size(train_df)
+typeof(train_df)
+
 
 ###############################################################
 #################  {  Draw Histogram  }  ######################
 ###############################################################
+
+# get overview of data (stat)
+describe(train_df)
 
 # Gadfly
 using Gadfly
@@ -37,7 +43,10 @@ draw(PNG(14cm, 10cm), p)
 
 # create train and test data splits
 y = train_df[:quality]
-x = train_df[:, 1:11]             # matrix of all except quality
+x = train_df[:, 1:11] # matrix of all except quality
+# vector() and matrix() from blog post
+y = array(y)
+x = array(x)
 
 n = length(y)
 is_train = shuffle([1:n] .> floor(n * .25))
@@ -58,7 +67,9 @@ println("Test set size: ", sum(!is_train))
 # weights and biases are initialized before backpropagation
 
 # similar to C structs - make scalars
-# sort of like a class!
+# type = composition type
+# = struct (c)
+# a composition type with functions = object
 type StandardScalar
   mean::Vector{Float64}
   std::Vector{Float64}
@@ -70,16 +81,17 @@ function StandardScalar()
 end
 
 # compute mean and std of each col
-function fit_std_scalar!(std_scalar::StandardScalar, X::Matrix{Float64})
+function fit_std_scalar!(std_scalar::StandardScalar, x::Matrix{Float64})
   n_rows, n_cols = size(x_test)
   std_scalar.std = zeros(n_cols)
   std_scalar.mean = zeros(n_cols)
 
   for i = 1:n_cols
-    std_scalar.mean[i] = mean(x[:, i])
-    std_scalar.std[i] = std(x[:, i])
+    std_scalar.mean[i] = mean(x[:,i])
+    std_scalar.std[i] = std(x[:,i])
   end
 end
+
 
 ###############################################################
 #####################  {  Transform  }  #######################
@@ -121,6 +133,8 @@ for i = 1:n_cols
   @printf("%0.3f ", (mean(x_test[:, i])))
 end
 
+println("std_scalar: ", std_scalar)
+println("x_train: ", x_train)
 x_train = fit_transform!(std_scalar, x_train)
 x_test = transform(std_scalar, x_test)
 
@@ -129,3 +143,108 @@ println("\n Col means after scaling:")
 for i = 1:n_cols
   @printf("%0.3f ", (mean(x_test[:,i])))
 end
+
+###############################################################
+##############  {  Artificial Neural Networks }  ##############
+###############################################################
+
+# artificial neural network package
+# strong ability to model non-linear relationships
+Pkg.clone("https://github.com/EricChiang/ANN.jl.git")
+using ANN
+
+# neural networks: layers of linear models
+# initialize by specifying the size of one layer,
+# 'hidden layer'
+# (larger hidden layer = likely to overfit
+# smaller hidden layer = overgeneralize)
+ann = ArtificialNeuralNetwork(12)
+
+# epochs = length of training
+# alpha = rate of training
+# lambda = scales penalty to control over-fitting
+fit!(ann, x_train, y_train, epochs=30, alpha=0.1, lambda=1e-5)
+
+y_proba = predict(ann, x_test)
+y_pred = Array(Int64, length(y_test))
+
+# translate class index to label
+for i in 1:length(y_test)
+  y_pred[i] = ann.classes[indmax(y_proba[i, :])]
+end
+
+println("Prediction accuracy: ", mean(y_pred .== y_test))
+
+# confusion matrix
+function confusion_matrix(y_true::Array{Int64,1}, y_pred::Array{Int64,1})
+    classes = sort(unique([unique(y_true), unique(y_pred)]))
+    cm = zeros(Int64, length(classes), length(classes))
+
+    for i in 1:length(y_test)
+        # translate label to index
+        true_class = findfirst(classes, y_test[i])
+        pred_class = findfirst(classes, y_pred[i])
+        # pred_class = row, true_class = column
+        cm[pred_class, true_class] += 1
+    end
+    cm
+end
+
+# cols = true classes
+# rows = predicted classes
+confusion_matrix(y_test, y_pred)
+
+###############################################################
+##################  {  Artificial Neural }  ###################
+###############################################################
+
+type ArtificialNeuron
+  weights::Vector{Float64}
+  bias::Float64
+  activation_func::Function
+end
+
+function activate(an::ArtificialNeuron, x::Vector{Float64})
+  # sum of weights * input + bias
+  pre_activation = an.weights' * x + an.bias
+  an.activation_func(pre_activation)
+end
+
+# Artificial neruon looks like linear model:
+# input * weight + bias
+function sigm(a)
+  1. / (1. + exp(-a))
+end
+
+weights = [1., -3., 1.]
+bias = 0.5
+an = ArtificialNeuron(weights, bias, sigm)
+
+# trial ->
+x = [-2., 1., 0.]
+activate(an, x)
+
+type ArtificalNeuron
+    weights::Vector{Float64}
+    bias::Float64
+    activation_func::Function
+end
+
+function activate(an::ArtificalNeuron, x::Vector{Float64})
+    # sum of weights times input, then add bias
+    pre_activation = an.weights' * x + an.bias
+    an.activation_func(pre_activation)
+end
+
+function sigm(a)
+    1. / (1. + exp(-a))
+end
+
+# hard code in some weights and biases
+weights = [1.,-3.,1.]
+bias = 0.5
+an = ArtificalNeuron(weights,bias,sigm)
+
+# What are the outputs of these values?
+x = [-2.,1.,0.]
+activate(an,x)
